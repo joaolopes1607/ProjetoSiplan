@@ -1,0 +1,13 @@
+const express = require('express');
+const router = express.Router();
+
+const axios = require('axios').default;
+
+  router.get('/',async (req,res,next) => {
+    const {data} = await axios.get("https://swapi.dev/api/vehicles/")
+   // console.log(data)
+    return res.json(data)
+  });
+
+
+module.exports = router;

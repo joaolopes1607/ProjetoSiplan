@@ -1,0 +1,56 @@
+ const express = require('express');
+ const router = express.Router();
+ const mysql = require("./mysql").pool;
+ const axios = require('axios').default;
+
+ router.get('/',(req,res,next) => {
+    mysql.getConnection((error,conn) => {
+        if (error) { console.error(error); res.status(500).send({ error: error }) }
+        conn.query (
+          'SELECT * FROM VIAGENS',
+          (error,resultado,field) => {
+              if(error) {
+                  return res.status(500).send({
+                      error: error,
+                      Response: null
+                  });
+              }
+              res.status(200).send({
+                  Response: resultado
+              });
+          }  
+        )
+    });
+ });
+
+
+router.post('/',(req,res) => {
+    mysql.getConnection(async(error,conn) => {
+        const {data} = await axios.get("https://swapi.dev/api/people/")
+        const Piloto = Object.values(data.results).filter(user => user.species == 'https://swapi.dev/api/species/2/').filter(a => a.name === req.body.pilotName)// CONSULTA NA API PARA VERIFICAR A CLASSE DO BODY
+        const CoPiloto = Object.values(data.results).filter(user => user.species == 'https://swapi.dev/api/species/2/').filter(a => a.name === req.body.copilotName)// CONSULTA NA API PARA VERIFICAR A CLASSE DO BODY
+        if(req.body.originName ===req.body.destinaionName){ return res.status(500).send({ Atenção: 'Você não pode viajar para o mesmo planeta que já está'})}// VALIDAÇÃO DE PLANETAS
+        if (Piloto.length === 0 && CoPiloto.length === 0){ return res.status(500).send({ Atenção: 'Precisamos de um Piloto ou CoPiloto da espécie Droid para seguirmos viagem'})}//VALIDAÇÃO DAS ESPÉCIES
+        if (error) { console.error(error); res.status(500).send({ error: error }) }
+
+        conn.query (
+          'INSERT INTO viagens (piloto,copiloto,nave,PlanetaO,PlanetaD) values (?,?,?,?,?)',
+          [req.body.pilotName,req.body.copilotName,req.body.starshipName,req.body.originName,req.body.destinaionName],
+          (error,resultado,field) => {
+              conn.release();
+              if(error) {
+                  return res.status(500).send({
+                      error: error,
+                      Response: null
+                  });
+              }
+              res.status(201).send({
+                  mensagem: 'Inserido Viagem !',
+                  Viagem: resultado.insertId
+              });
+          }  
+        )
+    });
+ });
+
+ module.exports = router;
